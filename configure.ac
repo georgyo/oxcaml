@@ -2884,6 +2884,15 @@ AS_IF([test x"$enable_address_sanitizer" = "xyes"],
       [common_cflags="$common_cflags -fsanitize=address -fsanitize-recover=address"
        oc_ldflags="$oc_ldflags -fsanitize=address -fsanitize-recover=address"
        address_sanitizer=true
+      dnl clang >= 21's inline ASan instrumentation miscompiles the header
+      dnl reads in the runtime's value-traversal routines (compare, hash,
+      dnl caml_obj_dup, ...) where OxCaml's [Is_null] (== 0) checks let it
+      dnl constant-fold the shadow address to the null case, faulting on valid
+      dnl non-null pointers. Forcing out-of-line instrumentation passes the
+      dnl real pointer to the ASan runtime and avoids the miscompilation.
+      AS_CASE([$ocaml_cc_vendor],
+        [clang-*],
+          [common_cflags="$common_cflags -fsanitize-address-outline-instrumentation"])
       AC_DEFINE([WITH_ADDRESS_SANITIZER])
       AC_MSG_NOTICE([using Address Sanitizer])],
     [AC_MSG_ERROR([Address Sanitizer is not supported on this platform])]
