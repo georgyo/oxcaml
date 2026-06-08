@@ -18,14 +18,11 @@
 let
   inherit (pkgs) lib fetchpatch;
 
-  # Select stdenv based on whether asan is enabled.
-  #
-  # ASan uses clang. OxCaml's hand-rolled ASan codegen targets an older
-  # compiler-rt (its CI uses LLVM 14); clang 21 (the nixpkgs 26.05 default)
-  # produces ASan-instrumented OCaml binaries that segfault on startup. Pin to
-  # clang 19, the version the previously-used nixpkgs provided and which oxcaml's
-  # ASan support is known to work with.
-  stdenv = if addressSanitizer then pkgs.llvmPackages_19.stdenv else pkgs.stdenv;
+  # Select stdenv based on whether asan is enabled. ASan uses clang (the
+  # nixpkgs 26.05 default, currently clang 21). Building with clang 21 requires
+  # the configure.ac change that forces out-of-line ASan instrumentation; see
+  # the comment there.
+  stdenv = if addressSanitizer then pkgs.clangStdenv else pkgs.stdenv;
 
   # Build configure flags based on features
   configureFlags =
